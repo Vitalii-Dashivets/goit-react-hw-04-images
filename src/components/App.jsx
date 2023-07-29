@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import { Button } from './Button/Button';
 import { ImageGallery } from './ImageGallery/ImageGallery';
@@ -6,6 +6,8 @@ import { Loader } from './Loader/Loader';
 import { Modal } from './Modal/Modal';
 import { Searchbar } from './Searchbar/Searchbar';
 import { fetchData } from 'services/fetch-api';
+import { useState } from 'react';
+import { useEffect } from 'react';
 
 Notify.init({
   width: '300px',
@@ -26,89 +28,66 @@ Notify.init({
   },
 });
 
-export class App extends Component {
-  state = {
-    images: [],
-    searchValue: '',
-    page: 1,
-    toShowLargeImage: '',
-    showModal: false,
-    showLoader: false,
-    showLoadMore: false,
-  };
+export const App = () => {
+  const [images, setImages] = useState([]);
+  const [searchValue, setSearchValue] = useState('');
+  const [page, setPage] = useState(1);
+  const [largeImage, setLargeImage] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [showLoader, setShowLoader] = useState(false);
+  const [showLoadMore, setShowLoadMore] = useState(false);
 
-  async componentDidUpdate(prevProps, prevState) {
-    const { searchValue, page } = this.state;
-
-    if (prevState.page !== page || prevState.searchValue !== searchValue) {
-      try {
-        this.setState({ showLoader: true });
-
-        const fetchResult = await fetchData(searchValue, page);
+  useEffect(() => {
+    if (!searchValue) {
+      return;
+    }
+    setShowLoader(true);
+    fetchData(searchValue, page)
+      .then(fetchResult => {
         if (fetchResult.length === 0) {
           throw new Error('Sorry, no results...');
         }
-        this.setState({
-          images: [...this.state.images, ...fetchResult],
-          showLoadMore: fetchResult.length === 12,
-        });
-      } catch (error) {
-        this.setState({ showLoadMore: false });
+        setImages(prevImages => [...prevImages, ...fetchResult]);
+        setShowLoadMore(fetchResult.length === 12);
+      })
+      .catch(error => {
+        setShowLoadMore(false);
         Notify.warning(error.message);
-      } finally {
-        this.setState({ showLoader: false });
-      }
-    }
-  }
+      })
+      .finally(() => {
+        setShowLoader(false);
+      });
+  }, [page, searchValue]);
 
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
+  const toggleModal = () => {
+    setShowModal(showModal => !showModal);
   };
 
-  onLoadMore = () => {
-    return this.setState(prevState => ({ page: prevState.page + 1 }));
+  const onLoadMore = () => {
+    setPage(prevPage => prevPage + 1);
   };
 
-  toShowLargeImage = url => {
-    this.toggleModal();
-    return this.setState({ toShowLargeImage: url });
+  const toShowLargeImage = url => {
+    toggleModal();
+    setLargeImage(url);
   };
 
-  setAppState = value => {
-    this.setState({
-      page: 1,
-      images: [],
-      searchValue: value,
-      showLoadMore: false,
-    });
+  const setAppState = value => {
+    setPage(1);
+    setImages([]);
+    setSearchValue(value);
+    setShowLoadMore(false);
   };
-  render() {
-    const { searchValue, page, showLoader, showLoadMore, showModal, images } =
-      this.state;
 
-    return (
-      <div>
-        <Searchbar
-          setAppState={this.setAppState}
-          searchValue={this.state.searchValue}
-        />
-
-        <ImageGallery
-          searchValue={searchValue}
-          page={page}
-          images={images}
-          setUrlLargeImage={this.toShowLargeImage}
-          setAppState={this.setAppState}
-        />
-        {showLoadMore && <Button click={this.onLoadMore} />}
-        {showModal && (
-          <Modal
-            largeImageUrl={this.state.toShowLargeImage}
-            onCloseModal={this.toggleModal}
-          />
-        )}
-        {showLoader && <Loader />}
-      </div>
-    );
-  }
-}
+  return (
+    <div>
+      <Searchbar setAppState={setAppState} searchValue={searchValue} />
+      <ImageGallery images={images} setUrlLargeImage={toShowLargeImage} />
+      {showLoadMore && <Button click={onLoadMore} />}
+      {showModal && (
+        <Modal largeImageUrl={largeImage} onCloseModal={toggleModal} />
+      )}
+      {showLoader && <Loader />}
+    </div>
+  );
+};
