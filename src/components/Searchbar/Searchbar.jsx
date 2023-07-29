@@ -12,7 +12,9 @@ export const Searchbar = ({ setAppState, searchValue }) => {
     }
     setAppState(inputValue.trim().toLowerCase());
   };
+
   const onChange = evt => setInputValue(evt.target.value);
+
   return (
     <header className={css.Searchbar}>
       <form className={css.SearchForm} onSubmit={onSubmitForm}>
