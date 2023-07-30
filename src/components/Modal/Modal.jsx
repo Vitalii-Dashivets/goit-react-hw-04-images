@@ -6,11 +6,6 @@ import { createPortal } from 'react-dom';
 const modalRoot = document.querySelector('#root_modal');
 
 export const Modal = ({ onCloseModal, largeImageUrl }) => {
-  const closeModal = e => {
-    if (e.code === 'Escape') {
-      onCloseModal();
-    }
-  };
   const closeOverlay = e => {
     if (e.target === e.currentTarget) {
       onCloseModal();
@@ -18,11 +13,16 @@ export const Modal = ({ onCloseModal, largeImageUrl }) => {
   };
 
   useEffect(() => {
+    const closeModal = e => {
+      if (e.code === 'Escape') {
+        onCloseModal();
+      }
+    };
     window.addEventListener('keydown', closeModal);
     return () => {
       window.removeEventListener('keydown', closeModal);
     };
-  });
+  }, [onCloseModal]);
 
   return createPortal(
     <div className={css.Overlay} onClick={closeOverlay}>
